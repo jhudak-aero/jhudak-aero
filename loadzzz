@@ -1,0 +1,97 @@
+# load_generator_mixed.py
+
+import aerospike
+import random
+import string
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+# ---- CONFIG ----
+AEROSPIKE_HOSTS = [('127.0.0.1', 3000)]
+NAMESPACE = 'test'
+SET = 'loadgen'
+TPS_TARGET = 1000           # Total transactions per second
+READ_PERCENTAGE = 70        # 70% reads, 30% writes
+PAYLOAD_SIZE = 4096         # ~4 KB per record
+KEY_SPACE_SIZE = 10_000_000 # Simulated keyspace
+DURATION_SECONDS = 600      # 10 minutes
+NUM_WORKER_THREADS = 200    # Threads available
+
+# ---- Connect to Aerospike ----
+config = {'hosts': AEROSPIKE_HOSTS}
+
+try:
+    client = aerospike.client(config).connect()
+except aerospike.exception.ClientError as e:
+    print(f"Failed to connect to Aerospike: {e}")
+    exit(1)
+
+# ---- Helper Functions ----
+def random_payload(size):
+    """Generate a random string payload of specified size."""
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=size))
+
+def do_read():
+    """Perform a random read."""
+    key_id = random.randint(0, KEY_SPACE_SIZE)
+    key = (NAMESPACE, SET, f"key_{key_id}")
+    try:
+        (key, metadata, bins) = client.get(key)
+    except aerospike.exception.RecordNotFound:
+        pass  # It's okay if not found (simulate cache miss)
+    except Exception as e:
+        print(f"Error reading from Aerospike: {e}")
+
+def do_write():
+    """Perform a random write."""
+    key_id = random.randint(0, KEY_SPACE_SIZE)
+    key = (NAMESPACE, SET, f"key_{key_id}")
+    record = {'data': random_payload(PAYLOAD_SIZE)}
+    try:
+        client.put(key, record)
+    except Exception as e:
+        print(f"Error writing to Aerospike: {e}")
+
+def load_worker():
+    """Worker decides to perform read or write based on configured ratio."""
+    if random.randint(1, 100) <= READ_PERCENTAGE:
+        do_read()
+    else:
+        do_write()
+
+# ---- Rate Controller ----
+def rate_controller(start_time):
+    """Submit load operations to match the target TPS."""
+    tx_count = 0
+    last_time = start_time
+
+    while True:
+        now = time.time()
+        elapsed = now - last_time
+
+        if elapsed >= 1:
+            print(f"Sent {tx_count} transactions in last {elapsed:.2f} seconds")
+            tx_count = 0
+            last_time = now
+
+        if tx_count < TPS_TARGET:
+            thread_pool.submit(load_worker)
+            tx_count += 1
+        else:
+            time.sleep(0.001)  # Avoid spinning CPU when target reached
+
+# ---- Main Program ----
+if __name__ == "__main__":
+    print("Starting Aerospike load generator with mixed traffic...")
+    thread_pool = ThreadPoolExecutor(max_workers=NUM_WORKER_THREADS)
+
+    start_time = time.time()
+    controller_thread = threading.Thread(target=rate_controller, args=(start_time,))
+    controller_thread.start()
+
+    # Let it run for the duration
+    time.sleep(DURATION_SECONDS)
+
+    print("Load test completed. Shutting down...")
+    client.close()
