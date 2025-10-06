@@ -1,0 +1,337 @@
+{
+  "title": "Aerospike AKO — Cluster Health & Experience",
+  "description": "Dashboard for engineers responsible for health, performance and customer experience of Aerospike clusters managed by the Aerospike Kubernetes Operator (AKO). Metrics assume Aerospike Prometheus Exporter (APE) is in place and metrics forwarded to Datadog. Adjust metric names/tags to match your pipeline.",
+  "widgets": [
+    {
+      "definition": {
+        "type": "note",
+        "note": "Aerospike observability: This dashboard expects Aerospike Prometheus Exporter metrics (APE) and AKO `/metrics` to be scraped and forwarded to Datadog. Confirm metric names in Datadog Metrics Explorer. See Aerospike docs: Monitor AKO, Monitor Clusters, Logs. (Docs: https://aerospike.com/docs/kubernetes/observe/operator-monitoring/ , https://aerospike.com/docs/kubernetes/observe/clusters/ , https://aerospike.com/docs/kubernetes/observe/logs/ )",
+        "background_color": "white",
+        "font_size": "small"
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 2
+      }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Cluster: Nodes Up / Down (by cluster_name)",
+        "requests": [
+          {
+            "q": "avg:aerospike_node_up{*} by {cluster_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "warm",
+              "type": "solid",
+              "width": "normal"
+            }
+          },
+          {
+            "q": "avg:aerospike_node_down{*} by {cluster_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "purple",
+              "type": "dashed",
+              "width": "normal"
+            }
+          }
+        ],
+        "yaxis": {
+          "label": "nodes",
+          "scale": "linear"
+        }
+      },
+      "layout": { "x": 0, "y": 2, "w": 24, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Operator: Reconcile / Errors (AKO)",
+        "requests": [
+          {
+            "q": "avg:aerospike_operator_reconcile_total{*}.rollup(sum, 60)",
+            "display_type": "area",
+            "style": { "palette": "blue", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_operator_reconcile_errors_total{*}.rollup(sum, 60)",
+            "display_type": "line",
+            "style": { "palette": "red", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "ops/min", "scale": "linear" }
+      },
+      "layout": { "x": 24, "y": 2, "w": 23, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Throughput — Client Reads & Writes (per namespace)",
+        "requests": [
+          {
+            "q": "sum:rate:aerospike_namespace_client_read_success{*}.rollup(sum, 60) by {ns}",
+            "display_type": "line",
+            "style": { "palette": "green", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "sum:rate:aerospike_namespace_client_write_success{*}.rollup(sum, 60) by {ns}",
+            "display_type": "line",
+            "style": { "palette": "orange", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "ops/sec", "scale": "linear" }
+      },
+      "layout": { "x": 0, "y": 8, "w": 47, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Errors & Timeouts (reads/writes) — per namespace",
+        "requests": [
+          {
+            "q": "sum:rate:aerospike_namespace_client_read_timeout{*}.rollup(sum, 60) by {ns}",
+            "display_type": "line",
+            "style": { "palette": "red", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "sum:rate:aerospike_namespace_client_write_timeout{*}.rollup(sum, 60) by {ns}",
+            "display_type": "line",
+            "style": { "palette": "magenta", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "sum:rate:aerospike_namespace_client_tsvc_error{*}.rollup(sum, 60) by {ns}",
+            "display_type": "line",
+            "style": { "palette": "brown", "type": "dashed", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "errors/sec", "scale": "linear" }
+      },
+      "layout": { "x": 0, "y": 14, "w": 24, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Read/Write Latency (avg) — per namespace (ms)",
+        "requests": [
+          {
+            "q": "avg:aerospike_namespace_read_latency_ms{*} by {ns}.rollup(avg, 60)",
+            "display_type": "line",
+            "style": { "palette": "cool", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_namespace_write_latency_ms{*} by {ns}.rollup(avg, 60)",
+            "display_type": "line",
+            "style": { "palette": "warm", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "ms", "scale": "linear" }
+      },
+      "layout": { "x": 24, "y": 14, "w": 23, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Latency (p95 placeholder) — configure if exporter exposes p95/p99",
+        "requests": [
+          {
+            "q": "avg:aerospike_namespace_read_latency_p95{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "purple", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_namespace_write_latency_p95{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "violet", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "ms (p95)", "scale": "linear" }
+      },
+      "layout": { "x": 0, "y": 20, "w": 47, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Namespace storage & memory (per namespace)",
+        "requests": [
+          {
+            "q": "avg:aerospike_namespace_memory_free_pct{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "blue", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_namespace_disk_used_bytes{*} by {ns}",
+            "display_type": "area",
+            "style": { "palette": "brown", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "pct / bytes", "scale": "linear" }
+      },
+      "layout": { "x": 0, "y": 26, "w": 24, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Replication / Appeals / Migrations",
+        "requests": [
+          {
+            "q": "avg:aerospike_namespace_appeals_rx_active{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "orange", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_namespace_appeals_tx_active{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "red", "type": "dashed", "width": "normal" }
+          },
+          {
+            "q": "avg:aerospike_namespace_appeals_tx_remaining{*} by {ns}",
+            "display_type": "line",
+            "style": { "palette": "purple", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "count", "scale": "linear" }
+      },
+      "layout": { "x": 24, "y": 26, "w": 23, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Aerospike Pod CPU / Memory (kube metrics)",
+        "requests": [
+          {
+            "q": "avg:kubernetes.pod.cpu.usage.total{pod:aerospike-server*} by {pod}",
+            "display_type": "line",
+            "style": { "palette": "green", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:kubernetes.pod.memory.usage{pod:aerospike-server*} by {pod}",
+            "display_type": "line",
+            "style": { "palette": "blue", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "CPU / bytes", "scale": "linear" }
+      },
+      "layout": { "x": 0, "y": 32, "w": 24, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "AKO Pod CPU / Memory (operator)",
+        "requests": [
+          {
+            "q": "avg:kubernetes.pod.cpu.usage.total{pod:aerospike-kubernetes-operator*} by {pod}",
+            "display_type": "line",
+            "style": { "palette": "brown", "type": "solid", "width": "normal" }
+          },
+          {
+            "q": "avg:kubernetes.pod.memory.usage{pod:aerospike-kubernetes-operator*} by {pod}",
+            "display_type": "line",
+            "style": { "palette": "purple", "type": "solid", "width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "CPU / bytes", "scale": "linear" }
+      },
+      "layout": { "x": 24, "y": 32, "w": 23, "h": 6 }
+    },
+
+    {
+      "definition": {
+        "type": "toplist",
+        "title": "Top Aerospike namespaces by read rate",
+        "requests": [
+          {
+            "q": "sum:rate:aerospike_namespace_client_read_success{*}.rollup(sum, 60) by {ns}",
+            "display_type": "toplist"
+          }
+        ],
+        "show_legend": true
+      },
+      "layout": { "x": 0, "y": 38, "w": 24, "h": 5 }
+    },
+
+    {
+      "definition": {
+        "type": "toplist",
+        "title": "Top Aerospike namespaces by write rate",
+        "requests": [
+          {
+            "q": "sum:rate:aerospike_namespace_client_write_success{*}.rollup(sum, 60) by {ns}",
+            "display_type": "toplist"
+          }
+        ],
+        "show_legend": true
+      },
+      "layout": { "x": 24, "y": 38, "w": 23, "h": 5 }
+    },
+
+    {
+      "definition": {
+        "type": "query_value",
+        "title": "Active Clusters",
+        "requests": [
+          {
+            "q": "count:distinct:avg:aerospike_node_up{*} by {cluster_name}",
+            "aggregator": "sum"
+          }
+        ],
+        "autoscale": true
+      },
+      "layout": { "x": 0, "y": 43, "w": 12, "h": 3 }
+    },
+
+    {
+      "definition": {
+        "type": "log_stream",
+        "title": "Recent Aerospike logs (errors/warn/critical)",
+        "query": "source:aerospike OR service:aerospike OR kubernetes.container_name:aerospike* \"ERROR\" OR \"WARN\" OR \"CRITICAL\"",
+        "indexes": [],
+        "columns": [
+          "timestamp",
+          "host",
+          "message"
+        ],
+        "sort": "desc"
+      },
+      "layout": { "x": 12, "y": 43, "w": 35, "h": 7 }
+    },
+
+    {
+      "definition": {
+        "type": "note",
+        "note": "Customize thresholds and alerts: set alerts for node down, sustained p95 above SLO, elevated timeouts, spikes in appeals/migrations. If p95/p99 percentile metrics are not present, enable extended exporter metrics or compute percentiles in Prometheus and forward as derived metrics to Datadog.",
+        "background_color": "white",
+        "font_size": "small"
+      },
+      "layout": { "x": 0, "y": 46, "w": 47, "h": 3 }
+    }
+  ],
+  "template_variables": [
+    {
+      "name": "cluster",
+      "prefix": "cluster_name",
+      "default": "*"
+    },
+    {
+      "name": "namespace",
+      "prefix": "ns",
+      "default": "*"
+    }
+  ],
+  "layout_type": "ordered",
+  "is_read_only": false,
+  "notify_list": []
+}
